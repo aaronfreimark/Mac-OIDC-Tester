@@ -20,6 +20,7 @@ struct ContentView: View {
     @AppStorage("scopes") private var scopes: String = "openid profile email"
     @AppStorage("responseType") private var responseType: String = "code"
     @AppStorage("extraParams") private var extraParams: String = ""
+    @AppStorage("useEphemeralSession") private var useEphemeralSession: Bool = false
 
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
@@ -71,45 +72,181 @@ struct ContentView: View {
                                     .foregroundColor(.blue)
                                 
                                 VStack(spacing: 16) {
-                                    TextField("Issuer URL", text: $issuerURL)
-                                        .textFieldStyle(.roundedBorder)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Issuer URL")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("https://your-oidc-provider.com", text: $issuerURL)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
                                     
-                                    TextField("Client ID", text: $clientID)
-                                        .textFieldStyle(.roundedBorder)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Client ID")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("Your OIDC client identifier", text: $clientID)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
                                     
-                                    TextField("Client Secret (optional)", text: $clientSecret)
-                                        .textFieldStyle(.roundedBorder)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Client Secret (Optional)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        SecureField("Enter client secret if required", text: $clientSecret)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
                                     
-                                    Picker("ACR Value", selection: $acrValue) {
-                                        ForEach(acrOptions, id: \.self) { option in
-                                            Text(option)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("ACR Value")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Picker("ACR Value", selection: $acrValue) {
+                                            ForEach(acrOptions, id: \.self) { option in
+                                                Text(option)
+                                            }
+                                        }
+                                        .pickerStyle(.menu)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Login Hint (Optional)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("Username or email hint", text: $loginHint)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Authentication Prompt")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        HStack {
+                                            Toggle("Prompt for login", isOn: $promptLogin)
+                                                .toggleStyle(.checkbox)
+                                            Spacer()
                                         }
                                     }
-                                    .pickerStyle(.menu)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
                                     
-                                    TextField("Login Hint (Optional)", text: $loginHint)
-                                        .textFieldStyle(.roundedBorder)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Redirect URI")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        HStack {
+                                            Text(defaultRedirectURI)
+                                                .font(.body)
+                                                .foregroundColor(.primary)
+                                                .textSelection(.enabled)
+                                                .padding(.vertical, 6)
+                                                .padding(.horizontal, 10)
+                                                .background(Color.gray.opacity(0.1))
+                                                .cornerRadius(6)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                                )
+                                            Spacer()
+                                        }
+                                    }
                                     
-                                    Toggle("Prompt for login", isOn: $promptLogin)
-                                        .toggleStyle(.checkbox)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Scopes")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("openid profile email", text: $scopes)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
                                     
-                                    Text("Redirect URI: \(defaultRedirectURI)")
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Response Type")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("code", text: $responseType)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Extra Parameters (Optional)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("key1=value1&key2=value2", text: $extraParams)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
+                                }
+                            }
+                            .padding(20)
+                            .background(Color.white.opacity(0.8))
+                            .cornerRadius(12)
+                            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                            
+                            // Mac Authentication Configuration Card
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Mac Authentication Configuration")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                                
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Browser Session Type")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                        .padding(.vertical, 4)
-                                        .padding(.horizontal, 8)
-                                        .background(Color.gray.opacity(0.1))
-                                        .cornerRadius(4)
                                     
-                                    TextField("Scopes", text: $scopes)
-                                        .textFieldStyle(.roundedBorder)
-                                    
-                                    TextField("Response Type", text: $responseType)
-                                        .textFieldStyle(.roundedBorder)
-                                    
-                                    TextField("Extra Params (optional)", text: $extraParams)
-                                        .textFieldStyle(.roundedBorder)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Button(action: {
+                                            useEphemeralSession = false
+                                        }) {
+                                            HStack {
+                                                Image(systemName: useEphemeralSession ? "circle" : "circle.inset.filled")
+                                                    .foregroundColor(.blue)
+                                                    .font(.system(size: 14))
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text("Use a shared web browser session")
+                                                        .font(.body)
+                                                        .foregroundColor(.primary)
+                                                    Text("Reuses existing browser cookies and login sessions")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                Spacer()
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(useEphemeralSession ? Color.clear : Color.blue.opacity(0.1))
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(useEphemeralSession ? Color.gray.opacity(0.3) : Color.blue.opacity(0.4), lineWidth: 1)
+                                        )
+                                        
+                                        Button(action: {
+                                            useEphemeralSession = true
+                                        }) {
+                                            HStack {
+                                                Image(systemName: useEphemeralSession ? "circle.inset.filled" : "circle")
+                                                    .foregroundColor(.blue)
+                                                    .font(.system(size: 14))
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text("Use ephemeral web browser session")
+                                                        .font(.body)
+                                                        .foregroundColor(.primary)
+                                                    Text("Fresh session without saved cookies or login state")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                Spacer()
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(useEphemeralSession ? Color.blue.opacity(0.1) : Color.clear)
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(useEphemeralSession ? Color.blue.opacity(0.4) : Color.gray.opacity(0.3), lineWidth: 1)
+                                        )
+                                    }
                                 }
                             }
                             .padding(20)
@@ -147,6 +284,29 @@ struct ContentView: View {
                     Label("Config", systemImage: "gearshape.fill")
                 }
                 .tag(0)
+
+                // Authentication Tab
+                AuthenticationTabView(
+                    isLoading: $isLoading,
+                    isAuthenticating: $isAuthenticating,
+                    progressMessage: progressMessage ?? "Ready to authenticate",
+                    errorMessage: errorMessage,
+                    webAuthSession: $webAuthSession,
+                    onStartAuthentication: {
+                        startOIDCAuthentication()
+                    },
+                    onCancel: {
+                        webAuthSession?.cancel()
+                        isLoading = false
+                        isAuthenticating = false
+                        logMessages.append("Authentication cancelled by user")
+                    }
+                )
+                .padding(32)
+                .tabItem {
+                    Label("Authentication", systemImage: "person.badge.key.fill")
+                }
+                .tag(1)
 
                 // Tokens Tab
                 VStack(alignment: .leading, spacing: 20) {
@@ -239,26 +399,6 @@ struct ContentView: View {
                     Label("Tokens", systemImage: "key.fill")
                 }
                 .tag(2)
-
-                // Logs Tab
-                AuthenticationTabView(
-                    isLoading: $isLoading,
-                    isAuthenticating: $isAuthenticating,
-                    progressMessage: progressMessage ?? "Ready to authenticate",
-                    errorMessage: errorMessage,
-                    webAuthSession: $webAuthSession,
-                    onCancel: {
-                        webAuthSession?.cancel()
-                        isLoading = false
-                        isAuthenticating = false
-                        logMessages.append("Authentication cancelled by user")
-                    }
-                )
-                .padding(32)
-                .tabItem {
-                    Label("Authentication", systemImage: "person.badge.key.fill")
-                }
-                .tag(1)
 
                 // Logs Tab
                 VStack(alignment: .leading, spacing: 20) {
@@ -428,8 +568,8 @@ struct ContentView: View {
             }
         }
         
-        // Enable ephemeral web browser session
-        session.prefersEphemeralWebBrowserSession = true
+        // Set ephemeral web browser session based on user preference
+        session.prefersEphemeralWebBrowserSession = useEphemeralSession
         
         // CRITICAL: Set presentation context provider BEFORE starting the session
         let contextProvider = PresentationContextProvider()
@@ -442,7 +582,8 @@ struct ContentView: View {
         
         // Update progress and start authentication
         progressMessage = "Opening browser for authentication..."
-        logMessages.append("Authentication session starting with ephemeral browsing enabled and presentation context set.")
+        let sessionType = useEphemeralSession ? "ephemeral" : "shared"
+        logMessages.append("Authentication session starting with \(sessionType) browsing session and presentation context set.")
         
         // Start the session (presentation context provider is now set)
         session.start()
@@ -739,6 +880,7 @@ struct AuthenticationTabView: View {
     let progressMessage: String
     let errorMessage: String?
     @Binding var webAuthSession: ASWebAuthenticationSession?
+    let onStartAuthentication: () -> Void
     let onCancel: () -> Void
     
     var body: some View {
@@ -824,11 +966,20 @@ struct AuthenticationTabView: View {
                                 Text("Ready to Authenticate")
                                     .font(.title2)
                                     .foregroundColor(.secondary)
-                                Text("Click 'Begin Authentication' on the Config tab to start")
+                                Text("Configure your OIDC settings and begin authentication")
                                     .font(.body)
                                     .foregroundColor(.secondary.opacity(0.8))
                             }
                         }
+                        
+                        // Begin Authentication Button
+                        Button(isLoading ? "Loading..." : "Begin Authentication") {
+                            onStartAuthentication()
+                        }
+                        .disabled(isLoading)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .tint(.orange)
                         
                         if let error = errorMessage {
                             VStack(alignment: .leading, spacing: 8) {
